@@ -47,8 +47,9 @@ export function Composer({
   const resize = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
+    const maxHeight = window.matchMedia("(max-width: 768px)").matches ? 140 : 200;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
   }, []);
 
   useEffect(() => { resize(); }, [text, resize]);
@@ -224,6 +225,7 @@ export function Composer({
       </div>
 
       <p
+        className="composer-disclaimer"
         style={{
           fontSize: 11,
           color: "var(--text-muted)",
