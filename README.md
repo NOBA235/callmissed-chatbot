@@ -35,6 +35,7 @@ npm install
 cp .env.example .env.local
 # Edit .env.local and paste your key:
 # CALLMISSED_API_KEY=cm_your_key_here
+# Restart the dev server after changing env files.
 
 # 3. Start
 npm run dev
@@ -44,6 +45,57 @@ Open [http://localhost:3000](http://localhost:3000).
 
 > **Get a free API key:** [app.callmissed.com](https://app.callmissed.com) → Profile → API Keys → Create.  
 > Give it the `llm` and `image` permissions.
+
+---
+
+## Recent fixes
+
+The app was showing `500 Internal Server Error` in the browser console for:
+
+- `POST /api/chat`
+- `POST /api/image`
+
+Root cause: the local `.env` file was empty, so the server had no `CALLMISSED_API_KEY`. Both chat and image generation use the same server-side CallMissed client, so both endpoints failed together.
+
+What was fixed:
+
+- Missing or placeholder API keys now return a clear `401` JSON response instead of an opaque `500`.
+- The server trims `CALLMISSED_API_KEY` and rejects placeholder values like `cm_your_key_here`.
+- A typed `ConfigError` was added so local setup issues are handled safely by the existing API error layer.
+- `next.config.ts` now sets `turbopack.root` to the app folder, preventing Next/Turbopack from scanning the parent user directory and crashing during `npm run build`.
+- `.env.example` and this README now show the correct key format and remind you to restart the dev server after changing env files.
+
+Expected response when the key is missing:
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "AI service is not configured. Add CALLMISSED_API_KEY to .env.local (or .env), then restart the dev server."
+  }
+}
+```
+
+To complete the local fix, add a real key:
+
+```env
+CALLMISSED_API_KEY=cm_your_real_key_here
+```
+
+Then restart the dev server:
+
+```bash
+npm run dev
+```
+
+Verified after the fix:
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+Both commands pass.
 
 ---
 

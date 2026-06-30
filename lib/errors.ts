@@ -10,6 +10,17 @@ export interface NormalizedError {
   body: ApiErrorResponse;
 }
 
+export class ConfigError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly code: ApiErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = "ConfigError";
+  }
+}
+
 // ── Upstream error-code strings we care about ────────────────────────────────
 
 const UNSUPPORTED_IMAGE_CODES = new Set([
@@ -29,6 +40,10 @@ const UNSUPPORTED_IMAGE_CODES = new Set([
  * forwarded to the client.
  */
 export function normalizeError(err: unknown): NormalizedError {
+  if (err instanceof ConfigError) {
+    return makeError(err.statusCode, err.code, err.message);
+  }
+
   // ── OpenAI SDK errors (covers 4xx / 5xx from CallMissed) ─────────────────
   if (err instanceof APIError) {
     return handleOpenAIError(err);

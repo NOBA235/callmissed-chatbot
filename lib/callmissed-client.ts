@@ -4,6 +4,7 @@
 import "server-only";
 
 import OpenAI from "openai";
+import { ConfigError } from "./errors";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -15,6 +16,12 @@ export const CHAT_MODEL = "kimi-k2.7-code" as const;
 /** flux-2-klein-9b: free-tier image generation */
 export const IMAGE_MODEL = "flux-2-klein-9b" as const;
 
+const PLACEHOLDER_API_KEYS = new Set([
+  "cm-callmissed-api-key",
+  "cm_your_key",
+  "cm_your_key_here",
+]);
+
 // ── Client singleton ─────────────────────────────────────────────────────────
 //
 // The OpenAI SDK is fully compatible with CallMissed — only the baseURL
@@ -23,14 +30,13 @@ export const IMAGE_MODEL = "flux-2-klein-9b" as const;
 // invocations on Vercel.
 
 function createClient(): OpenAI {
-  const apiKey = process.env.CALLMISSED_API_KEY;
+  const apiKey = process.env.CALLMISSED_API_KEY?.trim();
 
-  if (!apiKey) {
-    // Fail loudly at boot — a missing key is a config error, not a
-    // user error.  This surfaces in Vercel logs immediately.
-    throw new Error(
-      "CALLMISSED_API_KEY is not set. " +
-        "Add it to .env.local (local) or the Vercel environment (production)."
+  if (!apiKey || PLACEHOLDER_API_KEYS.has(apiKey)) {
+    throw new ConfigError(
+      401,
+      "unauthorized",
+      "AI service is not configured. Add CALLMISSED_API_KEY to .env.local (or .env), then restart the dev server."
     );
   }
 
